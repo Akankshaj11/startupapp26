@@ -36,7 +36,7 @@ export const authService = {
   },
 
   async register(data: RegisterData): Promise<{ success: boolean; data?: User; error?: string }> {
-    return apiFetch<User>('/users', {
+    return apiFetch<User>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     });
