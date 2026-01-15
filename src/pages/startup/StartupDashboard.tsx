@@ -117,7 +117,7 @@ export default function StartupDashboard() {
               <Button
                 variant="outline"
                 className="h-auto py-4 flex-col gap-2"
-                onClick={() => setPostModalOpen(true)}
+                onClick={() => (true)}
               >
                 <FileText className="h-5 w-5 text-accent" />
                 <span>Create Post</span>

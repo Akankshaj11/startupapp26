@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronRight,
   Plus,
+  BarChart3,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const navItems = [
   { icon: Briefcase, label: "Job Posts", href: "/startup/jobs" },
   { icon: Users, label: "Applicants", href: "/startup/applicants" },
   { icon: FileEdit, label: "Updates", href: "/startup/updates" },
+  // { icon: BarChart3, label: "Job Analysis", href: "/startup/jobanalysis" },
   { icon: Building2, label: "Company Profile", href: "/startup/profile" },
 ];
 

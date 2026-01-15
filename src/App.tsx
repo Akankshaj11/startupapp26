@@ -20,6 +20,13 @@ import StartupDashboard from "./pages/startup/StartupDashboard";
 import CreateStartupProfilePage from "./pages/startup/CreateStartupProfilePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import JobDetailPage from "./pages/startup/StartupJobDetail";
+import StartupJobDetail from "./pages/startup/StartupJobDetail";
+import StartupApplicants from "./pages/startup/StartupApplicants";
+import StartupUpdates from "./pages/startup/StartupUpdates";
+import StartupJobAnalysis from "./components/startup/StartupJobAnalysis";
+import ProfilePage from "./pages/startup/StartupProfile";
+import StartupProfile from "./pages/startup/StartupProfile";
 
 const queryClient = new QueryClient();
 
@@ -49,11 +56,13 @@ const App = () => (
             {/* Startup routes */}
             <Route path="/startup/create-profile" element={<CreateStartupProfilePage />} />
             <Route path="/startup/dashboard" element={<StartupDashboard />} />
-            <Route path="/startup/jobs" element={<StartupDashboard />} />
+
+            <Route path="/startup/jobs" element={<StartupJobDetail />} />
+
             <Route path="/startup/jobs/create" element={<StartupDashboard />} />
-            <Route path="/startup/applicants" element={<StartupDashboard />} />
-            <Route path="/startup/updates" element={<StartupDashboard />} />
-            <Route path="/startup/profile" element={<StartupDashboard />} />
+            <Route path="/startup/applicants" element={<StartupApplicants />} />
+            <Route path="/startup/updates" element={<StartupUpdates />} />
+            <Route path="/startup/profile" element={<StartupProfile />} />
             
             {/* Admin routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />

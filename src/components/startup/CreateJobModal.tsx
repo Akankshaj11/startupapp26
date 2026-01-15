@@ -54,16 +54,37 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
     }));
   };
 
+  
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Job Created:", formData);
-    toast({
-      title: "Job Posted",
-      description: `"${formData.title}" has been published successfully.`,
-    });
-    onOpenChange(false);
-    setFormData({ title: "", description: "", experienceRequired: "", educationRequired: "", skillsRequired: [] });
+  e.preventDefault();
+
+  const newJob = {
+    id: Date.now(),
+    title: formData.title,
+    description: formData.description,
+    experienceRequired: formData.experienceRequired + "+ Years",
+    educationRequired: formData.educationRequired,
+    skillsRequired: formData.skillsRequired,
+    postedOn: new Date().toLocaleDateString(),
+    status: "Open",
+    applicants: [],
   };
+
+  const existingJobs = JSON.parse(localStorage.getItem("startup_jobs") || "[]");
+
+  localStorage.setItem(
+    "startup_jobs",
+    JSON.stringify([newJob, ...existingJobs])
+  );
+
+  toast({
+    title: "Job Posted",
+    description: `"${formData.title}" has been published successfully.`,
+  });
+
+  onOpenChange(false);
+};
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
