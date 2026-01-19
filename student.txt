@@ -1,0 +1,27 @@
+student ui remaining:
+save
+share
+view startup profile
+notifications
+
+tomorrow tasks
+update job model  wrt UI - done
+update startup and student profile model - done
+create job update model - 
+update post model  - done
+create save job,posts model - done
+|
+|
+|----------------------------------> Also update controllers------------>test them----------->Integrate login to student
+
+genpac
+capgemeni
+eastman
+delloite
+deustach bank 
+cdk global
+
+
+create post
+
+
