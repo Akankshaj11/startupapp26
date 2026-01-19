@@ -84,6 +84,9 @@ export default function StartupUpdates() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
+  
+
+
   const selectedCandidates = applications.filter(
     (a) => a.status === "SELECTED"
   );

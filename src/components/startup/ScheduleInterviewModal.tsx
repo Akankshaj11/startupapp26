@@ -23,11 +23,11 @@ interface InterviewFormData {
   scheduleDate: string;
 }
 
-export function ScheduleInterviewModal({ 
-  open, 
-  onOpenChange, 
+export function ScheduleInterviewModal({
+  open,
+  onOpenChange,
   applicantName = "Applicant",
-  applicationId = "APP-001" 
+  applicationId = "APP-001",
 }: ScheduleInterviewModalProps) {
   const [formData, setFormData] = useState<InterviewFormData>({
     applicationId,
@@ -63,11 +63,7 @@ export function ScheduleInterviewModal({
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
           <div>
             <Label>Applicant</Label>
-            <Input
-              value={applicantName}
-              disabled
-              className="mt-1.5 bg-muted"
-            />
+            <Input value={applicantName} disabled className="mt-1.5 bg-muted" />
           </div>
 
           <div>

@@ -1,3 +1,6 @@
+
+
+
 import { useState, useEffect } from "react";
 import { Briefcase, Users, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +35,7 @@ type ApplicantStatus =
 
 interface Applicant {
   id: string;
-  jobId: number; // ✅ ADD THIS
+  jobId: number;
   name: string;
   email: string;
   role: string;
@@ -100,8 +103,6 @@ const hardcodedJobs: Job[] = [
 /* ---------------- COMPONENT ---------------- */
 
 export default function StartupJobDetail() {
-  // const [jobs, setJobs] = useState<Job[]>([]);
-
   const [jobs, setJobs] = useState<Job[]>(() => {
     if (typeof window === "undefined") return [];
 
@@ -117,7 +118,6 @@ export default function StartupJobDetail() {
     null,
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [editJob, setEditJob] = useState(false);
 
   const toggleJobStatus = (jobId: number) => {
     setJobs((prevJobs): Job[] => {
@@ -169,8 +169,6 @@ export default function StartupJobDetail() {
     });
   };
 
-  /* -------- FILTER -------- */
-
   const filteredJobs = jobs.filter((job) =>
     job.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -219,10 +217,12 @@ export default function StartupJobDetail() {
                   </Badge>
                 </div>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   {job.description}
                 </p>
+
                 <div className="flex flex-wrap gap-1">
                   {job.skillsRequired.map((s) => (
                     <Badge key={s} variant="outline">
@@ -230,34 +230,23 @@ export default function StartupJobDetail() {
                     </Badge>
                   ))}
                 </div>
+
                 <div className="flex items-center gap-2 text-sm">
                   <Users className="h-4 w-4" />
                   {job.applicants.length} Applicants
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={job.status === "Closed"}
-                    onClick={() => setSelectedJob(job)}
-                  >
-                    View Applicants
-                  </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setEditJob(true);
-                    }}
-                  >
-                    Edit Post
-                  </Button>
-                </div>{" "}
-              </CardContent>{" "}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={job.status === "Closed"}
+                  onClick={() => setSelectedJob(job)}
+                >
+                  View Applicants
+                </Button>
+              </CardContent>
             </Card>
-          ))}{" "}
+          ))}
         </div>
 
         {/* APPLICANTS LIST */}
@@ -282,7 +271,6 @@ export default function StartupJobDetail() {
                       <p className="font-medium">{a.name}</p>
                       <p className="text-xs text-muted-foreground">{a.email}</p>
                     </div>
-                    {/* <Badge>{a.status}</Badge> */}
 
                     <Badge
                       className={
@@ -327,13 +315,11 @@ export default function StartupJobDetail() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* <Badge>{selectedApplicant.status}</Badge> */}
-
                   <Badge
                     className={
                       selectedApplicant.status === "Rejected"
-                        ? "bg-red-500 text-white hover:bg-red-600"
-                        : "bg-teal-500 text-white hover:bg-teal-600"
+                        ? "bg-red-500 text-white"
+                        : "bg-teal-500 text-white"
                     }
                   >
                     {selectedApplicant.status}

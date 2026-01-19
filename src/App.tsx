@@ -27,6 +27,8 @@ import StartupUpdates from "./pages/startup/StartupUpdates";
 import StartupJobAnalysis from "./components/startup/StartupJobAnalysis";
 import ProfilePage from "./pages/startup/StartupProfile";
 import StartupProfile from "./pages/startup/StartupProfile";
+import Shortlisted from "./pages/startup/Shortlisted";
+import Selected from "./pages/startup/Selected";
 
 const queryClient = new QueryClient();
 
@@ -60,9 +62,11 @@ const App = () => (
             <Route path="/startup/jobs" element={<StartupJobDetail />} />
 
             <Route path="/startup/jobs/create" element={<StartupDashboard />} />
-            <Route path="/startup/applicants" element={<StartupApplicants />} />
-            <Route path="/startup/updates" element={<StartupUpdates />} />
+            {/* <Route path="/startup/applicants" element={<StartupApplicants />} /> */}
+            {/* <Route path="/startup/updates" element={<StartupUpdates />} /> */}
             <Route path="/startup/profile" element={<StartupProfile />} />
+            <Route path="/startup/shortlisted" element={<Shortlisted />} />
+            <Route path="/startup/selected" element={<Selected />} />
             
             {/* Admin routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
