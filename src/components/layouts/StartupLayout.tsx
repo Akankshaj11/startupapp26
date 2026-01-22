@@ -33,6 +33,7 @@ interface StartupLayoutProps {
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/startup/dashboard" },
   { icon: Briefcase, label: "Job Posts", href: "/startup/jobs" },
+  { icon: BarChart3, label: "Job Analysis", href: "/startup/analysis" },
   { icon: Calendar, label: "Interview Calendar", href: "/startup/interviews" },
   { icon: Users, label: "Shortlisted", href: "/startup/shortlisted" },
   { icon: Users, label: "Selected", href: "/startup/selected" },
