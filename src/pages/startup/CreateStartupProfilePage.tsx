@@ -48,7 +48,7 @@ export default function CreateStartupProfilePage() {
     startupName: user?.name || "",
     tagline: "",
     description: "",
-    industry: "FinTech" as Industry,
+    industry: "FinTeczh" as Industry,
     stage: "MVP" as Stage,
     website: "",
     linkedinUrl: "",

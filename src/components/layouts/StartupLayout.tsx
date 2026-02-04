@@ -4,85 +4,82 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
-  FileEdit,
-  Building2,
+  MessageSquare,
+  User,
+  Settings,
   Bell,
   LogOut,
   ChevronRight,
-  Plus,
-  BarChart3,
-  Calendar,
+  Menu,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { CreateJobModal } from "../startup/CreateJobModal";
-
-interface StartupLayoutProps {
-  children: ReactNode;
-}
+import { getStoredUser } from "@/lib/api";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/startup/dashboard" },
-  { icon: Briefcase, label: "Job Posts", href: "/startup/jobs" },
-  { icon: BarChart3, label: "Job Analysis", href: "/startup/analysis" },
-  { icon: Calendar, label: "Interview Calendar", href: "/startup/interviews" },
-  { icon: Users, label: "Shortlisted", href: "/startup/shortlisted" },
-  { icon: Users, label: "Selected", href: "/startup/selected" },
-  { icon: Building2, label: "Company Profile", href: "/startup/profile" },
+  { icon: Briefcase, label: "Jobs", href: "/startup/jobs" },
+  { icon: Users, label: "Applicants", href: "/startup/applicants" },
+  { icon: MessageSquare, label: "Updates", href: "/startup/updates" },
+  { icon: User, label: "Profile", href: "/startup/profile" },
+  { icon: Settings, label: "Settings", href: "/startup/settings" },
 ];
 
-export function StartupLayout({ children }: StartupLayoutProps) {
+export function StartupLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const [jobModalOpen, setJobModalOpen] = useState(false);
+  const user = getStoredUser();
+  const [open, setOpen] = useState(false);
+
+  const NavLinks = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <nav className="flex-1 space-y-1">
+      {navItems.map((item) => {
+        const isActive = location.pathname === item.href;
+        const link = (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            )}
+          >
+            <item.icon className={cn("h-5 w-5", isActive && "text-accent")} />
+            <span>{item.label}</span>
+            {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+          </Link>
+        );
+
+        return isMobile ? (
+          <SheetClose asChild key={item.href}>
+            {link}
+          </SheetClose>
+        ) : (
+          <div key={item.href}>{link}</div>
+        );
+      })}
+    </nav>
+  );
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex lg:w-64 flex-col bg-sidebar border-r border-sidebar-border">
-        <div className="p-6">
+    <div className="min-h-screen flex w-full bg-background overflow-hidden">
+      <aside className="hidden lg:flex lg:w-64 flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-screen shrink-0">
+        <div className="p-6 flex items-center gap-3">
           <Logo size="sm" />
+          <span className="text-xl font-bold tracking-tight text-sidebar-foreground">Wostup</span>
         </div>
-
-        <div className="px-4 mb-4">
-          {/* <Link to="/startup/jobs/create"> */}
-            <Button variant="hero" className="w-full gap-2" onClick={() => setJobModalOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Post a Job
-            </Button>
-          {/* </Link> */}
+        <div className="flex-1 px-4 overflow-y-auto">
+          <NavLinks />
         </div>
-
-        <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-                {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
-              </Link>
-            );
-          })}
-        </nav>
-
         <div className="p-4 border-t border-sidebar-border">
           <Link to="/login">
             <Button variant="ghost" className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50">
@@ -93,62 +90,52 @@ export function StartupLayout({ children }: StartupLayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top navbar */}
-        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
-          <div className="lg:hidden">
-            <Logo size="sm" />
-          </div>
-
-          <div className="flex-1" />
-
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] p-0 bg-sidebar border-r-0">
+                <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
+                  <Logo size="sm" />
+                  <span className="text-xl font-bold text-sidebar-foreground">Wostup</span>
+                </div>
+                <div className="px-4 py-6">
+                  <NavLinks isMobile />
+                </div>
+              </SheetContent>
+            </Sheet>
+            
+            <div className="lg:hidden flex items-center gap-2">
+              <Logo size="xs" />
+              <span className="text-lg font-bold">Wostup</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 lg:gap-4">
+            <Button variant="ghost" size="icon" className="relative h-9 w-9">
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent" />
+              <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-accent border-2 border-background" />
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="bg-accent text-accent-foreground text-sm">
-                      TC
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:block text-sm font-medium">TechCorp</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                <DropdownMenuItem asChild>
-                  <Link to="/startup/profile">Company Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/login">Sign out</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Avatar className="h-8 w-8 ring-2 ring-accent/20">
+              <AvatarFallback className="bg-accent text-accent-foreground text-xs uppercase font-bold">
+                {user?.username?.substring(0, 2) || "ST"}
+              </AvatarFallback>
+            </Avatar>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-background/50">
+          <div className="max-w-7xl mx-auto p-4 lg:p-8">
+            {children}
+          </div>
         </main>
       </div>
-
-
-      <CreateJobModal
-      open={jobModalOpen}
-      onOpenChange={setJobModalOpen}
-    />
-
-
     </div>
-
   );
 }

@@ -1,27 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Heart,
   MessageCircle,
   Share2,
   Bookmark,
   MoreHorizontal,
-  Image as ImageIcon,
   Calendar,
-  Megaphone,
-  Briefcase,
   ExternalLink,
-  TrendingUp,
+  Send,
+  Trash2,
+  User,
+  Search,
+  X
 } from "lucide-react";
 import { StudentLayout } from "@/components/layouts/StudentLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { apiFetch, getStoredUser } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+// --- Interfaces ---
+
+interface Comment {
+  _id: string;
+  user: { 
+    _id: string; 
+    name?: string; 
+    username?: string; 
+    avatar?: string 
+  };
+  text: string;
+}
 
 interface FeedPost {
-  id: number;
-  type: "update" | "event" | "promotion" | "hiring";
+  id: string;
+  type: "update" | "event" | "promotion";
   company: string;
   companyLogo: string;
   verified: boolean;
@@ -33,161 +58,304 @@ interface FeedPost {
   eventDate?: string;
   eventLocation?: string;
   likes: number;
-  comments: number;
+  commentsCount: number;
+  commentsList?: Comment[];
   isLiked: boolean;
   isSaved: boolean;
 }
 
-const feedPosts: FeedPost[] = [
-  {
-    id: 1,
-    type: "update",
-    company: "TechFlow AI",
-    companyLogo: "TF",
-    verified: true,
-    postedAt: "2 hours ago",
-    title: "🚀 We just raised $10M Series A!",
-    content: "Excited to announce that we've successfully closed our Series A round led by Sequoia Capital! This funding will help us scale our AI automation platform and expand our team. We're hiring across all departments - check out our open positions!",
-    likes: 234,
-    comments: 45,
-    isLiked: false,
-    isSaved: false,
-  },
-  {
-    id: 2,
-    type: "event",
-    company: "GreenScale",
-    companyLogo: "GS",
-    verified: true,
-    postedAt: "5 hours ago",
-    title: "Join us at CleanTech Summit 2026",
-    content: "We'll be presenting our latest sustainable energy solutions at the CleanTech Summit. Join our CEO for a keynote on 'The Future of Green Energy'. Free passes available for students!",
-    eventDate: "Jan 25, 2026",
-    eventLocation: "Bangalore International Centre",
-    link: "https://cleantechsummit.com",
-    likes: 156,
-    comments: 23,
-    isLiked: true,
-    isSaved: true,
-  },
-  {
-    id: 3,
-    type: "hiring",
-    company: "FinNext",
-    companyLogo: "FN",
-    verified: true,
-    postedAt: "1 day ago",
-    title: "We're hiring! Join our growing team",
-    content: "Looking for passionate individuals to join our fintech revolution. We have open positions in Engineering, Product, and Design. Remote-first culture, competitive salary, and amazing perks!",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-    likes: 312,
-    comments: 67,
-    isLiked: false,
-    isSaved: false,
-  },
-  {
-    id: 4,
-    type: "promotion",
-    company: "CloudNine",
-    companyLogo: "CN",
-    verified: true,
-    postedAt: "1 day ago",
-    title: "🎉 Product Launch: CloudNine 2.0",
-    content: "After months of hard work, we're thrilled to launch CloudNine 2.0 - the most powerful cloud infrastructure platform for startups. Get 3 months free when you sign up this month!",
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80",
-    link: "https://cloudnine.io/2.0",
-    likes: 189,
-    comments: 34,
-    isLiked: false,
-    isSaved: true,
-  },
-  {
-    id: 5,
-    type: "update",
-    company: "DesignHub",
-    companyLogo: "DH",
-    verified: true,
-    postedAt: "2 days ago",
-    title: "Building in public: Our journey to 100K users",
-    content: "We hit a major milestone this week - 100,000 designers are now using DesignHub! Here's a thread on what we learned building this product over the last 18 months...",
-    likes: 445,
-    comments: 89,
-    isLiked: true,
-    isSaved: false,
-  },
-  {
-    id: 6,
-    type: "event",
-    company: "BrandBoost",
-    companyLogo: "BB",
-    verified: false,
-    postedAt: "3 days ago",
-    title: "Free Workshop: Growth Marketing 101",
-    content: "Join our Head of Marketing for a free workshop on growth marketing strategies for early-stage startups. Perfect for students looking to break into marketing!",
-    eventDate: "Jan 20, 2026",
-    eventLocation: "Online (Zoom)",
-    likes: 78,
-    comments: 12,
-    isLiked: false,
-    isSaved: false,
-  },
-];
-
-const getTypeIcon = (type: FeedPost["type"]) => {
-  switch (type) {
-    case "event":
-      return <Calendar className="h-4 w-4" />;
-    case "promotion":
-      return <Megaphone className="h-4 w-4" />;
-    case "hiring":
-      return <Briefcase className="h-4 w-4" />;
-    default:
-      return <TrendingUp className="h-4 w-4" />;
-  }
-};
+// --- Helpers ---
 
 const getTypeBadge = (type: FeedPost["type"]) => {
   switch (type) {
     case "event":
-      return <Badge variant="accent">Event</Badge>;
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Event</Badge>;
     case "promotion":
       return <Badge variant="secondary">Product Launch</Badge>;
-    case "hiring":
-      return <Badge variant="success">Hiring</Badge>;
     default:
-      return <Badge variant="muted">Update</Badge>;
+      return <Badge variant="secondary">Update</Badge>;
   }
 };
 
-export default function StartupFeedPage() {
-  const [posts, setPosts] = useState(feedPosts);
-  const [activeTab, setActiveTab] = useState("all");
+const formatTimeAgo = (dateString: string) => {
+  if (!dateString) return "Just now";
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  const toggleLike = (postId: number) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              isLiked: !post.isLiked,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-            }
-          : post
-      )
-    );
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+export default function StartupFeedPage() {
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const user = getStoredUser();
+
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const activePost = posts.find(p => p.id === activeCommentPostId);
+
+  // --- 1. Fetch Feed ---
+  useEffect(() => {
+    const fetchFeed = async () => {
+      setLoading(true);
+      try {
+        let endpoint = "/recommendations/cold-start/posts?limit=20";
+        if (user?._id) {
+          endpoint = `/recommendations/posts/${user._id}?limit=20&random=true`;
+        }
+
+        const res = await apiFetch(endpoint);
+
+        if (res.success && Array.isArray(res.data)) {
+          const transformedData = res.data.map((item: any) => transformFeedItem(item));
+          setPosts(transformedData);
+        } else {
+          console.error("Failed to load feed:", res.message);
+        }
+      } catch (error) {
+        console.error("Error fetching feed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeed();
+  }, [user?._id]);
+
+  // --- Transform Data ---
+  const transformFeedItem = (item: any): FeedPost => {
+    const realId = item.contentId || item.postId || item._id;
+    let postType: FeedPost['type'] = "update";
+    const lowerTitle = (item.title || "").toLowerCase();
+    if (lowerTitle.includes("event") || lowerTitle.includes("webinar")) postType = "event";
+    else if (lowerTitle.includes("launch") || lowerTitle.includes("product")) postType = "promotion";
+
+    return {
+      id: realId,
+      type: postType,
+      company: item.startupid?.startupName || "Startup",
+      companyLogo: (item.startupid?.startupName || "S").charAt(0).toUpperCase(),
+      verified: item.startupid?.verified || false,
+      postedAt: formatTimeAgo(item.createdAt),
+      title: item.title || "New Update",
+      content: item.description || "",
+      image: item.media?.photo || undefined,
+      link: item.link,
+      likes: item.likes || 0,
+      commentsCount: item.comments?.length || item.commentsCount || 0,
+      commentsList: Array.isArray(item.comments) ? item.comments : [],
+      isLiked: item.isLiked || false,
+      isSaved: item.isSaved || false,
+    };
   };
 
-  const toggleSave = (postId: number) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, isSaved: !post.isSaved } : post
-      )
-    );
+  const handleAuthError = () => {
+    toast({ 
+      title: "Session Expired", 
+      description: "Please login again to continue.", 
+      variant: "destructive" 
+    });
+  };
+
+  // --- Share Logic ---
+  const handleShare = async (post: FeedPost) => {
+    const shareData = {
+      title: post.title,
+      text: `${post.company} posted: ${post.title}`,
+      url: post.link || window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        toast({ title: "Link copied to clipboard!" });
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+    }
+  };
+
+  // --- 2. Like / Unlike ---
+  const toggleLike = async (post: FeedPost) => {
+    if (!user?._id) {
+      toast({ title: "Login Required", description: "Please login to like posts.", variant: "destructive" });
+      return;
+    }
+
+    const previousState = [...posts];
+    const isLiking = !post.isLiked;
+
+    setPosts(posts.map((p) => 
+      p.id === post.id 
+        ? { ...p, isLiked: isLiking, likes: isLiking ? p.likes + 1 : p.likes - 1 } 
+        : p
+    ));
+
+    try {
+      const endpoint = isLiking ? `/like/${post.id}` : `/unlike/${post.id}`;
+      const res = await apiFetch(endpoint, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user._id })
+      });
+
+      if (res.status === 401) {
+        setPosts(previousState);
+        handleAuthError();
+        return;
+      }
+
+      if (res.error) throw new Error(res.error);
+      
+      if (typeof res.likes === 'number') {
+        setPosts(currentPosts => currentPosts.map(p => 
+          p.id === post.id ? { ...p, likes: res.likes } : p
+        ));
+      }
+    } catch (error) {
+      console.error("Like error:", error);
+      setPosts(previousState);
+      toast({ title: "Error", description: "Action failed", variant: "destructive" });
+    }
+  };
+
+  // --- 3. Save / Unsave ---
+  const toggleSave = async (post: FeedPost) => {
+    if (!user?._id) {
+      toast({ title: "Login Required", description: "Please login to save posts.", variant: "destructive" });
+      return;
+    }
+
+    setPosts(posts.map((p) => p.id === post.id ? { ...p, isSaved: !p.isSaved } : p));
+
+    try {
+       const endpoint = `/sav-posts/${post.id}`;
+       const method = post.isSaved ? "DELETE" : "POST";
+       const body = JSON.stringify({ studentId: user._id, postId: post.id });
+       
+       const res = await apiFetch(endpoint, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body
+       });
+
+       if (res.status === 401) {
+          handleAuthError();
+          return;
+       }
+
+       if (res.success === false) throw new Error(res.error);
+
+    } catch (error) {
+       console.error("Save error", error);
+       setPosts(posts.map((p) => p.id === post.id ? { ...p, isSaved: post.isSaved } : p));
+       toast({ title: "Error", description: "Could not save post", variant: "destructive" });
+    }
+  };
+
+  // --- 4. Comment Handlers ---
+  
+  const openComments = (postId: string) => {
+    setActiveCommentPostId(postId);
+    setCommentText("");
+  };
+
+  const submitComment = async (post: FeedPost) => {
+    if (!user?._id) {
+      toast({ title: "Login Required", variant: "destructive" });
+      return;
+    }
+    if (!commentText.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+        const res = await apiFetch(`/comment/${post.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: commentText, userId: user._id })
+        });
+
+        if (res.status === 401) {
+            handleAuthError();
+            return;
+        }
+
+        if (res.error) throw new Error(res.error || res.message);
+
+        const updatedComments = res.comments || []; 
+        
+        setPosts(posts.map(p => 
+            p.id === post.id 
+            ? { 
+                ...p, 
+                commentsCount: updatedComments.length || p.commentsCount + 1,
+                commentsList: updatedComments
+              } 
+            : p
+        ));
+        
+        toast({ title: "Comment added" });
+        setCommentText("");
+    } catch (error) {
+        console.error("Comment error:", error);
+        toast({ title: "Error", description: "Failed to add comment", variant: "destructive" });
+    } finally {
+        setIsSubmittingComment(false);
+    }
+  };
+
+  const deleteComment = async (post: FeedPost, commentId: string) => {
+    if (!user?._id) return;
+
+    try {
+      const res = await apiFetch(`/comment/${post.id}/${commentId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user._id })
+      });
+
+      if (res.status === 401) {
+        handleAuthError();
+        return;
+      }
+
+      if (res.error) throw new Error(res.error);
+
+      setPosts(posts.map(p => 
+        p.id === post.id 
+        ? {
+            ...p,
+            commentsList: p.commentsList?.filter(c => c._id !== commentId),
+            commentsCount: Math.max(0, p.commentsCount - 1)
+          }
+        : p
+      ));
+      toast({ title: "Comment deleted" });
+    } catch (error) {
+      console.error("Delete comment error:", error);
+      toast({ title: "Error", description: "Could not delete comment", variant: "destructive" });
+    }
   };
 
   const filteredPosts = posts.filter((post) => {
-    if (activeTab === "all") return true;
-    return post.type === activeTab;
+    const query = searchQuery.toLowerCase();
+    return (
+      post.title.toLowerCase().includes(query) ||
+      post.content.toLowerCase().includes(query) ||
+      post.company.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -202,153 +370,245 @@ export default function StartupFeedPage() {
             </p>
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="w-full justify-start h-auto p-1 bg-secondary">
-              <TabsTrigger value="all" className="gap-2">
-                All Posts
-              </TabsTrigger>
-              <TabsTrigger value="update" className="gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Updates
-              </TabsTrigger>
-              <TabsTrigger value="event" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Events
-              </TabsTrigger>
-              <TabsTrigger value="hiring" className="gap-2">
-                <Briefcase className="h-4 w-4" />
-                Hiring
-              </TabsTrigger>
-              <TabsTrigger value="promotion" className="gap-2">
-                <Megaphone className="h-4 w-4" />
-                Launches
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* Search Box Section */}
+          <div className="relative mb-8">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search posts by title, company or content..."
+              className="pl-10 h-12 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-transparent"
+                onClick={() => setSearchQuery("")}
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
 
-          {/* Feed */}
           <div className="space-y-6">
-            {filteredPosts.map((post) => (
-              <Card key={post.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center font-bold text-accent">
-                        {post.companyLogo}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{post.company}</h3>
-                          {post.verified && (
-                            <Badge variant="accent" className="h-5 px-1.5 text-xs">
-                              ✓
-                            </Badge>
-                          )}
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="pb-3"><div className="h-12 w-full bg-accent/10 animate-pulse rounded-lg" /></CardHeader>
+                  <CardContent><div className="h-24 bg-accent/5 animate-pulse rounded-lg" /></CardContent>
+                </Card>
+              ))
+            ) : filteredPosts.length > 0 ? (
+              filteredPosts.map((post) => (
+                <Card key={post.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center font-bold text-accent text-xl flex-shrink-0 select-none">
+                          {post.companyLogo}
                         </div>
-                        <p className="text-sm text-muted-foreground">{post.postedAt}</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{post.company}</h3>
+                            {post.verified && (
+                              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-blue-100 text-blue-700">✓</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{post.postedAt}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getTypeBadge(post.type)}
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="text-lg font-semibold mb-2">{post.title}</h4>
-                    <p className="text-muted-foreground leading-relaxed">{post.content}</p>
-                  </div>
-
-                  {/* Event details */}
-                  {post.type === "event" && post.eventDate && (
-                    <div className="flex flex-wrap gap-4 p-4 bg-secondary rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-accent" />
-                        <span className="font-medium">{post.eventDate}</span>
+                        {getTypeBadge(post.type)}
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                       </div>
-                      {post.eventLocation && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>📍 {post.eventLocation}</span>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="text-lg font-semibold mb-2">{post.title}</h4>
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                    </div>
+
+                    {post.type === "event" && post.eventDate && (
+                      <div className="flex flex-wrap gap-4 p-4 bg-secondary rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-accent" />
+                          <span className="font-medium">{post.eventDate}</span>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {post.eventLocation && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span>📍 {post.eventLocation}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Image */}
-                  {post.image && (
-                    <div className="rounded-lg overflow-hidden">
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
-                  )}
+                    {post.image && (
+                      <div className="rounded-lg overflow-hidden border bg-muted/20">
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-auto max-h-[400px] object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </div>
+                    )}
 
-                  {/* Link */}
-                  {post.link && (
-                    <a
-                      href={post.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-accent hover:underline"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {post.link.replace("https://", "")}
-                    </a>
-                  )}
+                    {post.link && (
+                      <a
+                        href={post.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary font-medium hover:underline p-3 bg-primary/5 rounded-md border border-primary/10 transition-colors hover:bg-primary/10"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Visit Link
+                      </a>
+                    )}
 
-                  <Separator />
+                    <Separator />
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleLike(post)}
+                          className={post.isLiked ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "hover:bg-accent/10"}
+                        >
+                          <Heart className={`h-4 w-4 mr-1 ${post.isLiked ? "fill-current" : ""}`} />
+                          {post.likes}
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="hover:bg-accent/10"
+                          onClick={() => openComments(post.id)}
+                        >
+                          <MessageCircle className="h-4 w-4 mr-1" />
+                          {post.commentsCount}
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="hover:bg-accent/10"
+                          onClick={() => handleShare(post)}
+                        >
+                          <Share2 className="h-4 w-4 mr-1" />
+                          Share
+                        </Button>
+                      </div>
+                      
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleLike(post.id)}
-                        className={post.isLiked ? "text-destructive" : ""}
+                        onClick={() => toggleSave(post)}
+                        className={post.isSaved ? "text-primary" : ""}
                       >
-                        <Heart
-                          className={`h-4 w-4 mr-1 ${post.isLiked ? "fill-current" : ""}`}
-                        />
-                        {post.likes}
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {post.comments}
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Share
+                        <Bookmark className={`h-4 w-4 ${post.isSaved ? "fill-current" : ""}`} />
                       </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSave(post.id)}
-                    >
-                      <Bookmark
-                        className={`h-4 w-4 ${post.isSaved ? "fill-current text-accent" : ""}`}
-                      />
-                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className="p-12 text-center border-dashed">
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                    <Search className="h-6 w-6 text-muted-foreground" />
                   </div>
-                </CardContent>
+                  <h3 className="text-lg font-semibold">No results found</h3>
+                  <p className="text-muted-foreground max-w-sm">
+                    {searchQuery ? `We couldn't find anything matching "${searchQuery}"` : "Follow more startups to see updates."}
+                  </p>
+                  {searchQuery && (
+                    <Button variant="outline" onClick={() => setSearchQuery("")}>Clear Search</Button>
+                  )}
+                </div>
               </Card>
-            ))}
+            )}
           </div>
-
-          {filteredPosts.length === 0 && (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">No posts found in this category.</p>
-            </Card>
-          )}
         </div>
+
+        {/* COMMENTS MODAL */}
+        <Dialog 
+          open={!!activeCommentPostId} 
+          onOpenChange={(open) => !open && setActiveCommentPostId(null)}
+        >
+          <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col p-0 gap-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle>Comments ({activePost?.commentsCount || 0})</DialogTitle>
+            </DialogHeader>
+            
+            <ScrollArea className="flex-1 p-6 pt-2">
+              {activePost?.commentsList && activePost.commentsList.length > 0 ? (
+                <div className="space-y-4">
+                  {activePost.commentsList.map((comment) => (
+                    <div key={comment._id} className="flex gap-3 text-sm group">
+                      <Avatar className="h-8 w-8 mt-1">
+                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 bg-secondary/50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-xs opacity-70">
+                            {typeof comment.user === 'object' 
+                              ? (comment.user.username || comment.user.name || 'User') 
+                              : 'User'}
+                          </span>
+                          
+                          {user && (typeof comment.user === 'string' 
+                              ? comment.user === user._id 
+                              : comment.user?._id === user._id
+                          ) && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                              onClick={() => activePost && deleteComment(activePost, comment._id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-foreground leading-relaxed">{comment.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 gap-2">
+                  <MessageCircle className="h-8 w-8" />
+                  <p>No comments yet. Be the first!</p>
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="p-4 border-t bg-background mt-auto">
+              <div className="flex gap-2">
+                <Textarea 
+                  placeholder="Write a comment..." 
+                  className="min-h-[40px] max-h-[100px] resize-none"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                />
+                <Button 
+                  size="icon" 
+                  onClick={() => activePost && submitComment(activePost)} 
+                  disabled={isSubmittingComment || !commentText.trim()}
+                  className="mt-auto shrink-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </StudentLayout>
   );

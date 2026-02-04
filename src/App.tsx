@@ -27,7 +27,8 @@ import Shortlisted from "./pages/startup/Shortlisted";
 import Selected from "./pages/startup/Selected";
 import InterviewCalendarPage from "./pages/startup/InterviewCalendarPage";
 import JobAnalysisPage from "./pages/startup/JobAnalysisPage";
-
+import TrendingJobsPage from "./pages/student/TrendingJobsPost";
+import SavedItemsPage from "./pages/student/SavePage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -52,7 +53,8 @@ const App = () => (
             <Route path="/student/applications" element={<ApplicationsPage />} />
             <Route path="/student/profile" element={<StudentProfilePage />} />
             <Route path="/student/feed" element={<StartupFeedPage />} />
-            
+            <Route path="/student/TrendingJobs" element={<TrendingJobsPage />} />
+            <Route path="/student/saved" element={<SavedItemsPage />} />
             {/* Startup routes */}
             <Route path="/startup/create-profile" element={<CreateStartupProfilePage />} />
             <Route path="/startup/dashboard" element={<StartupDashboard />} />

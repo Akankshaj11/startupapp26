@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Briefcase,
   Building2,
@@ -9,75 +10,103 @@ import {
   MapPin,
   DollarSign,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { StudentLayout } from "@/components/layouts/StudentLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { apiFetch, getStoredUser } from "@/lib/api";
 
-const featuredStartups = [
-  {
-    id: 1,
-    name: "TechFlow AI",
-    logo: "TF",
-    domain: "AI/ML",
-    tagline: "Automating workflows with AI",
-    openPositions: 3,
-  },
-  {
-    id: 2,
-    name: "GreenScale",
-    logo: "GS",
-    domain: "CleanTech",
-    tagline: "Sustainable energy solutions",
-    openPositions: 2,
-  },
-  {
-    id: 3,
-    name: "FinNext",
-    logo: "FN",
-    domain: "FinTech",
-    tagline: "Next-gen payment infrastructure",
-    openPositions: 5,
-  },
-];
+interface StartupUpdate {
+  _id: string;
+  startupId: string; 
+  companyName: string;
+  title: string;
+  content: string;
+  date: string;
+}
 
-const trendingJobs = [
-  {
-    id: 1,
-    title: "Frontend Developer",
-    company: "TechFlow AI",
-    location: "Remote",
-    stipend: "₹40K/month",
-    type: "Internship",
-  },
-  {
-    id: 2,
-    title: "Product Manager",
-    company: "GreenScale",
-    location: "Bangalore",
-    stipend: "₹15 LPA",
-    type: "Full-time",
-  },
-  {
-    id: 3,
-    title: "Data Analyst",
-    company: "FinNext",
-    location: "Mumbai",
-    stipend: "₹8 LPA",
-    type: "Full-time",
-  },
-];
-
-const recentUpdates = [
-  { id: 1, company: "TechFlow AI", update: "Just raised Series A funding!", time: "2h ago" },
-  { id: 2, company: "GreenScale", update: "Launched new product line", time: "5h ago" },
-  { id: 3, company: "FinNext", update: "Hiring spree - 10 new positions!", time: "1d ago" },
-];
+interface TrendingJob {
+  _id: string;
+  role: string;
+  location: string;
+  jobType: string;
+  stipend: boolean;
+  salary: string | null;
+  startup: {
+    _id: string;
+    startupName: string;
+  };
+}
 
 export default function StudentDashboard() {
-  const profileCompletion = 65;
+  const [startups, setStartups] = useState<any[]>([]);
+  const [updates, setUpdates] = useState<StartupUpdate[]>([]);
+  const [trendingJobs, setTrendingJobs] = useState<TrendingJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = getStoredUser();
+  const navigate = useNavigate();
+  
+  const profileCompletion = user?.profileCompleted ? 100 : 65;
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        const [startupRes, trendingRes] = await Promise.all([
+          apiFetch("/startupProfiles"),
+          apiFetch(user?._id ? `/recommendations/trending/jobs` : `/recommendations/cold-start?type=trending-jobs&limit=3`)
+        ]);
+        
+        if (startupRes.success && Array.isArray(startupRes.data)) {
+          const allProfiles = startupRes.data;
+          // Display top 3 featured startups
+          setStartups(allProfiles.slice(0, 3));
+
+          const extractedUpdates: StartupUpdate[] = [];
+          allProfiles.forEach((profile: any) => {
+            // Filter profiles that have updates entries
+            if (profile.updates && profile.updates.length > 0) {
+              profile.updates.forEach((upd: any) => {
+                extractedUpdates.push({
+                  _id: upd._id,
+                  startupId: profile._id, 
+                  companyName: profile.startupName,
+                  title: upd.title,
+                  content: upd.content,
+                  date: upd.date || profile.updatedAt
+                });
+              });
+            }
+          });
+
+          setUpdates(extractedUpdates.sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          ).slice(0, 5));
+        }
+
+        if (trendingRes.success && Array.isArray(trendingRes.data)) {
+          setTrendingJobs(trendingRes.data.slice(0, 3));
+        }
+
+      } catch (error) {
+        console.error("Dashboard fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user?._id]);
+
+  const formatTimeAgo = (dateString: string) => {
+    const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 84600) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
 
   return (
     <StudentLayout>
@@ -85,7 +114,7 @@ export default function StudentDashboard() {
         {/* Welcome header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Welcome back, John! 👋</h1>
+            <h1 className="text-3xl font-bold text-foreground">Welcome back, {user?.username || 'Ayaan'}! 👋</h1>
             <p className="text-muted-foreground mt-1">
               Here's what's happening in the startup world today.
             </p>
@@ -98,7 +127,7 @@ export default function StudentDashboard() {
           </Link>
         </div>
 
-        {/* Profile completion */}
+        {/* Profile completion card - linked to user profileCompleted state */}
         <Card variant="gradient" className="border-accent/20">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -125,51 +154,45 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card variant="elevated">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Briefcase className="h-6 w-6 text-accent" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">12</p>
-                  <p className="text-sm text-muted-foreground">Jobs Applied</p>
-                </div>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Briefcase className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">12</p>
+                <p className="text-sm text-muted-foreground">Jobs Applied</p>
               </div>
             </CardContent>
           </Card>
           <Card variant="elevated">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">4</p>
-                  <p className="text-sm text-muted-foreground">Shortlisted</p>
-                </div>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">4</p>
+                <p className="text-sm text-muted-foreground">Shortlisted</p>
               </div>
             </CardContent>
           </Card>
           <Card variant="elevated">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-warning" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">8</p>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                </div>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">8</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Featured startups */}
+          {/* Featured Startups Section */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Featured Startups</h2>
@@ -178,24 +201,31 @@ export default function StudentDashboard() {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {featuredStartups.map((startup) => (
-                <Card key={startup.id} variant="interactive">
+              {loading ? (
+                <div className="flex justify-center col-span-3 p-8"><Loader2 className="animate-spin text-accent" /></div>
+              ) : startups.map((startup) => (
+                <Card 
+                  key={startup._id} 
+                  variant="interactive"
+                  onClick={() => navigate(`/student/startups/${startup._id}`)} // Navigate to individual startup profile
+                  className="cursor-pointer"
+                >
                   <CardContent className="p-5">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center font-bold text-accent">
-                        {startup.logo}
+                      <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center font-bold text-accent uppercase">
+                        {startup.profilepic ? <img src={startup.profilepic} className="rounded-xl w-full h-full object-cover" /> : startup.startupName.substring(0,2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{startup.name}</h3>
-                        <Badge variant="accent" className="text-xs">{startup.domain}</Badge>
+                        <h3 className="font-semibold truncate">{startup.startupName}</h3>
+                        <Badge variant="accent" className="text-[10px]">{startup.industry}</Badge>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {startup.tagline}
+                      {startup.tagline || startup.aboutus}
                     </p>
                     <div className="flex items-center text-sm text-accent font-medium">
-                      <Briefcase className="h-4 w-4 mr-1" />
-                      {startup.openPositions} open positions
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {startup.location?.city || "Remote"}
                     </div>
                   </CardContent>
                 </Card>
@@ -203,58 +233,78 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Recent updates */}
+          {/* Startup Updates Section */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Startup Updates</h2>
             <Card>
               <CardContent className="p-4 space-y-4">
-                {recentUpdates.map((update) => (
-                  <div key={update.id} className="flex gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-5 w-5 text-accent" />
+                {loading ? (
+                   <div className="flex justify-center"><Loader2 className="animate-spin" /></div>
+                ) : updates.length > 0 ? (
+                  updates.map((update) => (
+                    <div 
+                      key={update._id} 
+                      onClick={() => navigate(`/student/startups/${update.startupId}`)} // Clicking update takes you to the company profile
+                      className="flex gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-5 w-5 text-accent" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{update.companyName}</p>
+                        <p className="text-xs font-bold text-accent">{update.title}</p>
+                        <p className="text-sm text-muted-foreground truncate">{update.content}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(update.date)}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{update.company}</p>
-                      <p className="text-sm text-muted-foreground truncate">{update.update}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{update.time}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground text-sm p-4">No recent updates.</p>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Trending jobs */}
+        {/* Trending Jobs Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Trending Jobs</h2>
-            <Link to="/student/jobs" className="text-accent hover:text-accent/80 text-sm font-medium flex items-center gap-1">
+            <Link to="/student/TrendingJobs" className="text-accent hover:text-accent/80 text-sm font-medium flex items-center gap-1"> 
               View all <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {trendingJobs.map((job) => (
-              <Card key={job.id} variant="interactive">
-                <CardContent className="p-5">
-                  <Badge variant={job.type === "Internship" ? "accent" : "success"} className="mb-3">
-                    {job.type}
-                  </Badge>
-                  <h3 className="font-semibold text-lg mb-1">{job.title}</h3>
-                  <p className="text-muted-foreground text-sm mb-4">{job.company}</p>
-                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {job.location}
+            {loading ? (
+              <div className="flex justify-center col-span-3 p-8"><Loader2 className="animate-spin text-accent" /></div>
+            ) : trendingJobs.length > 0 ? (
+              trendingJobs.map((job) => (
+                <Card 
+                  key={job._id} 
+                  variant="interactive"
+                  onClick={() => navigate(`/student/jobs/${job._id}`)} // Dynamic navigation to job detail page
+                  className="cursor-pointer"
+                >
+                  <CardContent className="p-5">
+                    <Badge variant={job.jobType === "Internship" ? "accent" : "success"} className="mb-3">
+                      {job.jobType}
+                    </Badge>
+                    <h3 className="font-semibold text-lg mb-1">{job.role}</h3>
+                    <p className="text-muted-foreground text-sm mb-4">{job.startup.startupName}</p>
+                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" /> {job.location || "Remote"}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4" /> {job.salary || (job.stipend ? "Paid" : "Unpaid")}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      {job.stipend}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground text-sm col-span-3 p-4">No trending jobs found.</p>
+            )}
           </div>
         </div>
       </div>

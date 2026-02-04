@@ -1,40 +1,40 @@
-// API Configuration
+// src/lib/api.ts
+
 export const API_BASE_URL = 'http://localhost:3000/api';
 
-// Helper to get auth token
 export const getAuthToken = (): string | null => {
   return localStorage.getItem('auth_token');
 };
 
-// Helper to set auth token
 export const setAuthToken = (token: string): void => {
   localStorage.setItem('auth_token', token);
 };
 
-// Helper to clear auth token
 export const clearAuthToken = (): void => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('user');
 };
 
-// Helper to get stored user
 export const getStoredUser = () => {
   const user = localStorage.getItem('user');
   return user ? JSON.parse(user) : null;
 };
 
-// Helper to store user
 export const setStoredUser = (user: any): void => {
   localStorage.setItem('user', JSON.stringify(user));
 };
 
-// Generic fetch wrapper with auth
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<{ success: boolean; data?: T; error?: string }> {
+): Promise<{ success: boolean; data?: T; error?: string; status?: number; [key: string]: any }> {
   const token = getAuthToken();
   
+  // DEBUG: Warn if token is missing for authenticated requests
+  if (!token) {
+    console.warn(`[apiFetch] No auth_token found. Request to ${endpoint} might fail.`);
+  }
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -45,16 +45,21 @@ export async function apiFetch<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      credentials: 'include', // For cookies
+      credentials: 'include',
     });
 
     const data = await response.json();
     
+    // Return status code to handle 401s specifically
     if (!response.ok) {
-      return { success: false, error: data.error || 'An error occurred' };
+      return { 
+        success: false, 
+        error: data.error || data.message || 'An error occurred',
+        status: response.status 
+      };
     }
 
-    return data;
+    return { ...data, status: response.status, success: true };
   } catch (error) {
     console.error('API Error:', error);
     return { success: false, error: 'Network error. Please try again.' };

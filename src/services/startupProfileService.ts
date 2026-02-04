@@ -37,26 +37,26 @@ export const startupProfileService = {
   },
 
   async getProfiles(): Promise<{ success: boolean; data?: StartupProfile[]; error?: string }> {
-    return apiFetch<StartupProfile[]>('/startup-profiles');
+    return apiFetch<StartupProfile[]>('/startupProfile');
   },
 
   async getProfileById(id: string): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {
-    return apiFetch<StartupProfile>(`/startup-profiles/${id}`);
+    return apiFetch<StartupProfile>(`/startupProfile/${id}`);
   },
 
   async getMyProfile(): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {
-    return apiFetch<StartupProfile>('/startup-profiles/me');
+    return apiFetch<StartupProfile>('/startupProfile/me');
   },
 
   async updateProfile(id: string, data: Partial<StartupProfile>): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {
-    return apiFetch<StartupProfile>(`/startup-profiles/${id}`, {
+    return apiFetch<StartupProfile>(`/startupProfile/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   async deleteProfile(id: string): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {
-    return apiFetch<StartupProfile>(`/startup-profiles/${id}`, {
+    return apiFetch<StartupProfile>(`/startupProfile/${id}`, {
       method: 'DELETE',
     });
   },
