@@ -14,12 +14,11 @@ export interface LoginResponse {
 }
 
 export interface RegisterData {
-  name: string;
+  username: string; // Changed from name to username
   email: string;
   password: string;
   role: 'student' | 'startup' | 'admin';
 }
-
 export const authService = {
   async login(email: string, password: string): Promise<{ success: boolean; data?: LoginResponse; error?: string }> {
     const result = await apiFetch<LoginResponse>('/auth/login', {
@@ -35,10 +34,10 @@ export const authService = {
     return result;
   },
 
-  async register(data: RegisterData): Promise<{ success: boolean; data?: User; error?: string }> {
+async register(data: RegisterData): Promise<{ success: boolean; data?: User; error?: string }> {
     return apiFetch<User>('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(data), // This now sends { username, email, password, role }
     });
   },
 

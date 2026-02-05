@@ -38,14 +38,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { success: false, error: result.error };
   };
 
-  const register = async (name: string, email: string, password: string, role: 'student' | 'startup' | 'admin') => {
-    const result = await authService.register({ name, email, password, role });
-    if (result.success) {
-      // Auto-login after registration
-      return await login(email, password);
-    }
-    return { success: false, error: result.error };
-  };
+// src/contexts/AuthContext.tsx
+
+const register = async (name: string, email: string, password: string, role: 'student' | 'startup' | 'admin') => {
+  // Pass 'name' as 'username' to match the updated service interface
+  const result = await authService.register({ username: name, email, password, role });
+  if (result.success) {
+    return await login(email, password);
+  }
+  return { success: false, error: result.error };
+};
 
   const logout = async () => {
     await authService.logout();
