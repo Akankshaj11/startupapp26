@@ -11,6 +11,11 @@ import {
   LogOut,
   ChevronRight,
   Menu,
+  // Add these new icons
+  UserCheck,
+  UserPlus,
+  BarChart3,
+  Calendar
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -27,11 +32,19 @@ import { getStoredUser } from "@/lib/api";
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/startup/dashboard" },
   { icon: Briefcase, label: "Jobs", href: "/startup/jobs" },
-  { icon: Users, label: "Applicants", href: "/startup/applicants" },
-  { icon: MessageSquare, label: "Updates", href: "/startup/updates" },
+  // { icon: Users, label: "Applicants", href: "/startup/applicants" },
+  // New Sections Added Below
+  { icon: UserCheck, label: "Shortlisted", href: "/startup/shortlisted" },
+  { icon: UserPlus, label: "Selected", href: "/startup/selected" },
+  { icon: BarChart3, label: "Analysis", href: "/startup/analysis" },
+  { icon: Calendar, label: "Interviews", href: "/startup/interviews" },
+  // ---
+  // { icon: MessageSquare, label: "Updates", href: "/startup/updates" },
   { icon: User, label: "Profile", href: "/startup/profile" },
   { icon: Settings, label: "Settings", href: "/startup/settings" },
 ];
+
+// ... rest of your component logic remains the same
 
 export function StartupLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
