@@ -19,6 +19,10 @@ import StartupFeedPage from "./pages/student/StartupFeedPage";
 import StartupProfilePage from "./pages/student/StartupProfilePage";
 import StartupDashboard from "./pages/startup/StartupDashboard";
 import CreateStartupProfilePage from "./pages/startup/CreateStartupProfilePage";
+import AdminStartupsPage from "./pages/admin/AdminStartupsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminModerationPage from "./pages/admin/AdminModerationPage";
+import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import StartupJobsPage from "./pages/startup/StartupJobsPage";
@@ -70,10 +74,10 @@ const App = () => (
             
             {/* Admin routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/startups" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminDashboard />} />
-            <Route path="/admin/moderation" element={<AdminDashboard />} />
-            <Route path="/admin/analytics" element={<AdminDashboard />} />
+            <Route path="/admin/startups" element={<AdminStartupsPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/moderation" element={<AdminModerationPage />} />
+            <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
