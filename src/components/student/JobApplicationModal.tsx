@@ -9,12 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { apiFetch, getStoredUser } from "@/lib/api";
 
 interface JobApplicationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: {
-    id: number;
+    id: number | string;
     title: string;
     company: string;
   };
@@ -33,18 +34,43 @@ export function JobApplicationModal({
     e.preventDefault();
     if (!resumeFile) return;
 
+    const user = getStoredUser();
+    if (!user?._id) {
+        toast({ title: "Error", description: "You must be logged in to apply.", variant: "destructive" });
+        return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+        const formData = new FormData();
+        formData.append('resume', resumeFile);
+        
+        const res = await apiFetch(`/applications/${job.id}/${user._id}`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (res.success) {
+            setStep("success");
+            toast({
+              title: "Application Submitted!",
+              description: `Your resume for ${job.title} at ${job.company} has been submitted. Status: ${(res.data as any)?.status}`,
+            });
+        } else {
+             toast({
+               title: "Application Failed", 
+               description: res.error || "Failed to submit application.", 
+               variant: "destructive" 
+             });
+        }
 
-    setIsSubmitting(false);
-    setStep("success");
-
-    toast({
-      title: "Application Submitted!",
-      description: `Your resume for ${job.title} at ${job.company} has been submitted.`,
-    });
+    } catch (error) {
+        console.error("Submission error:", error);
+        toast({ title: "Error", description: "Network error occurred.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

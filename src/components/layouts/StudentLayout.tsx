@@ -41,6 +41,7 @@ const navItems = [
   { icon: Rss, label: "Feed", href: "/student/feed" },
   { icon: Bookmark, label: "Saved", href: "/student/saved" },
   { icon: FileText, label: "Applications", href: "/student/applications" },
+  { icon: Bell, label: "Notifications", href: "/student/notifications" },
   { icon: User, label: "Profile", href: "/student/profile" },
 ];
 

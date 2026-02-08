@@ -5,39 +5,73 @@ export interface StartupProfile {
   userId: string;
   startupName: string;
   tagline?: string;
-  description?: string;
+  aboutus?: string;
   industry?: string;
   stage?: string;
-  foundedYear?: string;
-  teamSize?: string;
+  foundedYear?: number;
+  teamSize?: number;
   website?: string;
-  linkedinUrl?: string;
-  twitterUrl?: string;
-  logoUrl?: string;
-  location?: string;
-  techStack?: string[];
-  openPositions?: number;
+  profilepic?: string;
+  numberOfEmployees?: number;
+  productOrService?: string;
+  cultureAndValues?: string;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    github?: string;
+  };
+  location?: {
+    city?: string;
+    country?: string;
+  };
+  leadershipTeam?: Array<{
+    user?: string;
+    role?: string;
+  }>;
+  hiring?: boolean;
+  verified?: boolean;
 }
 
 export interface CreateStartupProfileData {
   userId: string;
   startupName: string;
   tagline?: string;
-  description?: string;
+  aboutus?: string;
   industry?: string;
   stage?: string;
+  profilepic?: string;
+  numberOfEmployees?: number;
+  productOrService?: string;
+  cultureAndValues?: string;
+  website?: string;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    github?: string;
+  };
+  foundedYear?: number;
+  teamSize?: number;
+  location?: {
+    city?: string;
+    country?: string;
+  };
+  leadershipTeam?: Array<{
+    user?: string;
+    role?: string;
+  }>;
+  hiring?: boolean;
 }
 
 export const startupProfileService = {
   async createProfile(data: CreateStartupProfileData): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {
-    return apiFetch<StartupProfile>('/startup-profiles', {
+    return apiFetch<StartupProfile>('/startupProfile', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   async getProfiles(): Promise<{ success: boolean; data?: StartupProfile[]; error?: string }> {
-    return apiFetch<StartupProfile[]>('/startupProfile');
+    return apiFetch<StartupProfile[]>('/startupProfiles');
   },
 
   async getProfileById(id: string): Promise<{ success: boolean; data?: StartupProfile; error?: string }> {

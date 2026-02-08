@@ -31,7 +31,7 @@ import { startupProfileService } from "@/services/startupProfileService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const industries = [
-  "FinTech", "EdTech", "HealthTech", "AI/ML", "SaaS", "E-Commerce", "Web3", "CleanTech", "AgriTech", "Other"
+  "FinTech", "EdTech", "HealthTech", "AI/ML", "SaaS", "E-Commerce", "Web3", "Other"
 ] as const;
 
 const stages = ["Idea", "MVP", "Early Traction", "Growth", "Scaling"] as const;
@@ -47,19 +47,47 @@ export default function CreateStartupProfilePage() {
   const [formData, setFormData] = useState({
     startupName: user?.name || "",
     tagline: "",
-    description: "",
-    industry: "FinTeczh" as Industry,
+    aboutus: "",
+    productOrService: "",
+    cultureAndValues: "",
+    industry: "FinTech" as Industry,
     stage: "MVP" as Stage,
     website: "",
-    linkedinUrl: "",
-    twitterUrl: "",
-    githubUrl: "",
+    profilepic: "",
+    linkedin: "",
+    twitter: "",
+    github: "",
     foundedYear: new Date().getFullYear().toString(),
-    teamSize: "5",
+    teamSize: "1",
+    numberOfEmployees: "1",
     city: "",
     country: "",
     hiring: true,
+    leadershipTeam: [{ user: "", role: "" }],
   });
+
+  const handleLeaderChange = (index: number, key: "user" | "role", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: prev.leadershipTeam.map((member, idx) =>
+        idx === index ? { ...member, [key]: value } : member
+      ),
+    }));
+  };
+
+  const addLeader = () => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: [...prev.leadershipTeam, { user: "", role: "" }],
+    }));
+  };
+
+  const removeLeader = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: prev.leadershipTeam.filter((_, idx) => idx !== index),
+    }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -71,20 +99,38 @@ export default function CreateStartupProfilePage() {
     setIsSubmitting(true);
 
     try {
+      const toNumber = (value: string) => (value ? Number(value) : undefined);
+
       const profileData = {
         userId: user?._id || "",
         startupName: formData.startupName,
         tagline: formData.tagline,
-        description: formData.description,
+        aboutus: formData.aboutus,
+        productOrService: formData.productOrService,
+        cultureAndValues: formData.cultureAndValues,
         industry: formData.industry,
         stage: formData.stage,
         website: formData.website,
-        linkedinUrl: formData.linkedinUrl,
-        twitterUrl: formData.twitterUrl,
-        foundedYear: formData.foundedYear,
-        teamSize: formData.teamSize,
-        location: `${formData.city}, ${formData.country}`.trim().replace(/^,\s*|,\s*$/g, ''),
-        openPositions: formData.hiring ? 1 : 0,
+        profilepic: formData.profilepic,
+        socialLinks: {
+          linkedin: formData.linkedin,
+          twitter: formData.twitter,
+          github: formData.github,
+        },
+        foundedYear: toNumber(formData.foundedYear),
+        teamSize: toNumber(formData.teamSize),
+        numberOfEmployees: toNumber(formData.numberOfEmployees),
+        location: {
+          city: formData.city || undefined,
+          country: formData.country || undefined,
+        },
+        hiring: formData.hiring,
+        leadershipTeam: formData.leadershipTeam
+          .map((member) => ({
+            user: member.user.trim() || undefined,
+            role: member.role.trim() || undefined,
+          }))
+          .filter((member) => member.user || member.role),
       };
 
       const result = await startupProfileService.createProfile(profileData);
@@ -164,15 +210,51 @@ export default function CreateStartupProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="profilepic">Logo URL</Label>
+                  <Input
+                    id="profilepic"
+                    name="profilepic"
+                    type="url"
+                    value={formData.profilepic}
+                    onChange={handleChange}
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="aboutus">About Us <span className="text-destructive">*</span></Label>
                   <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
+                    id="aboutus"
+                    name="aboutus"
+                    value={formData.aboutus}
                     onChange={handleChange}
                     placeholder="Tell us about your startup, mission, and vision..."
                     rows={4}
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productOrService">Product or Service</Label>
+                  <Textarea
+                    id="productOrService"
+                    name="productOrService"
+                    value={formData.productOrService}
+                    onChange={handleChange}
+                    placeholder="What do you build or provide?"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cultureAndValues">Culture and Values</Label>
+                  <Textarea
+                    id="cultureAndValues"
+                    name="cultureAndValues"
+                    value={formData.cultureAndValues}
+                    onChange={handleChange}
+                    placeholder="Share your team culture and values"
+                    rows={3}
                   />
                 </div>
 
@@ -222,7 +304,7 @@ export default function CreateStartupProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="foundedYear" className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" /> Founded Year
@@ -244,6 +326,17 @@ export default function CreateStartupProfilePage() {
                       name="teamSize"
                       type="number"
                       value={formData.teamSize}
+                      onChange={handleChange}
+                      min={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="numberOfEmployees">Number of Employees</Label>
+                    <Input
+                      id="numberOfEmployees"
+                      name="numberOfEmployees"
+                      type="number"
+                      value={formData.numberOfEmployees}
                       onChange={handleChange}
                       min={1}
                     />
@@ -307,45 +400,90 @@ export default function CreateStartupProfilePage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="linkedinUrl" className="flex items-center gap-2">
+                    <Label htmlFor="linkedin" className="flex items-center gap-2">
                       <Linkedin className="h-4 w-4" /> LinkedIn
                     </Label>
                     <Input
-                      id="linkedinUrl"
-                      name="linkedinUrl"
+                      id="linkedin"
+                      name="linkedin"
                       type="url"
-                      value={formData.linkedinUrl}
+                      value={formData.linkedin}
                       onChange={handleChange}
                       placeholder="linkedin.com/company/..."
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="twitterUrl" className="flex items-center gap-2">
+                    <Label htmlFor="twitter" className="flex items-center gap-2">
                       <Twitter className="h-4 w-4" /> Twitter
                     </Label>
                     <Input
-                      id="twitterUrl"
-                      name="twitterUrl"
+                      id="twitter"
+                      name="twitter"
                       type="url"
-                      value={formData.twitterUrl}
+                      value={formData.twitter}
                       onChange={handleChange}
                       placeholder="twitter.com/..."
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="githubUrl" className="flex items-center gap-2">
+                    <Label htmlFor="github" className="flex items-center gap-2">
                       <Github className="h-4 w-4" /> GitHub
                     </Label>
                     <Input
-                      id="githubUrl"
-                      name="githubUrl"
+                      id="github"
+                      name="github"
                       type="url"
-                      value={formData.githubUrl}
+                      value={formData.github}
                       onChange={handleChange}
                       placeholder="github.com/..."
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Leadership Team */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Leadership Team</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.leadershipTeam.map((member, index) => (
+                  <div key={`leader-${index}`} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                    <div className="md:col-span-3 space-y-2">
+                      <Label htmlFor={`leader-user-${index}`}>Leader User ID</Label>
+                      <Input
+                        id={`leader-user-${index}`}
+                        value={member.user}
+                        onChange={(e) => handleLeaderChange(index, "user", e.target.value)}
+                        placeholder="User ID"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor={`leader-role-${index}`}>Role</Label>
+                      <Input
+                        id={`leader-role-${index}`}
+                        value={member.role}
+                        onChange={(e) => handleLeaderChange(index, "role", e.target.value)}
+                        placeholder="e.g., CEO"
+                      />
+                    </div>
+                    <div className="md:col-span-5 flex justify-end">
+                      {formData.leadershipTeam.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeLeader(index)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={addLeader}>
+                  Add Leader
+                </Button>
               </CardContent>
             </Card>
 

@@ -303,7 +303,11 @@ export default function JobDetailsPage() {
       <JobApplicationModal 
         open={showApplicationModal} 
         onOpenChange={setShowApplicationModal} 
-        job={job} 
+        job={{
+          id: job._id,
+          title: job.role,
+          company: job.startupId?.startupName || "Startup"
+        }} 
       />
     </StudentLayout>
   );

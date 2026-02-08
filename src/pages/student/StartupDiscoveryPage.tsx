@@ -88,11 +88,15 @@ export default function StartupDiscoveryPage() {
       domain: item.industry || "General",
       location: locationStr,
       tagline: item.tagline || "Building the future",
-      description: item.about || "No description available.",
+      description: item.aboutus || "No description available.",
       verified: item.verified || false,
-      teamSize: item.teamSize ? `${item.teamSize} employees` : "1-10", 
+      teamSize: item.numberOfEmployees
+        ? `${item.numberOfEmployees} employees`
+        : item.teamSize
+          ? `${item.teamSize} employees`
+          : "1-10",
       // funding: item.funding || "Bootstrapped", 
-      openPositions: item.openPositions || 0 
+      openPositions: item.hiring ? 1 : 0
     };
   };
 

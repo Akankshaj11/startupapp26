@@ -49,7 +49,9 @@ interface StartupFormData {
   _id: string;
   startupName: string;
   tagline: string;
-  description: string;
+  aboutus: string;
+  productOrService: string;
+  cultureAndValues: string;
   industry: Industry;
   stage: Stage;
   website: string;
@@ -57,10 +59,12 @@ interface StartupFormData {
   twitter: string;
   github: string;
   foundedYear: string;
-  teamSize: number;
+  teamSize: string;
+  numberOfEmployees: string;
   city: string;
   country: string;
   hiring: boolean;
+  leadershipTeam: Array<{ user: string; role: string }>;
 }
 
 export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfileModalProps) {
@@ -71,7 +75,9 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
     _id: "",
     startupName: "",
     tagline: "",
-    description: "",
+    aboutus: "",
+    productOrService: "",
+    cultureAndValues: "",
     industry: "FinTech",
     stage: "MVP",
     website: "",
@@ -79,11 +85,36 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
     twitter: "",
     github: "",
     foundedYear: "2023",
-    teamSize: 5,
+    teamSize: "1",
+    numberOfEmployees: "1",
     city: "",
     country: "",
     hiring: true,
+    leadershipTeam: [{ user: "", role: "" }],
   });
+
+  const handleLeaderChange = (index: number, key: "user" | "role", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: prev.leadershipTeam.map((member, idx) =>
+        idx === index ? { ...member, [key]: value } : member
+      ),
+    }));
+  };
+
+  const addLeader = () => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: [...prev.leadershipTeam, { user: "", role: "" }],
+    }));
+  };
+
+  const removeLeader = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      leadershipTeam: prev.leadershipTeam.filter((_, idx) => idx !== index),
+    }));
+  };
 
   // Fetch existing profile when modal opens
   useEffect(() => {
@@ -94,22 +125,45 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
           const result = await startupProfileService.getMyProfile();
           if (result.success && result.data) {
             const profile = result.data;
+            const socialLinks = profile.socialLinks || {};
+            const rawLocation = profile.location as { city?: string; country?: string } | string | undefined;
+            let city = "";
+            let country = "";
+
+            if (rawLocation && typeof rawLocation === "object") {
+              city = rawLocation.city || "";
+              country = rawLocation.country || "";
+            } else if (typeof rawLocation === "string") {
+              const parts = rawLocation.split(",").map((part) => part.trim());
+              city = parts[0] || "";
+              country = parts[1] || "";
+            }
+
             setFormData({
               _id: profile._id,
               startupName: profile.startupName || "",
               tagline: profile.tagline || "",
-              description: profile.description || "",
+              aboutus: profile.aboutus || "",
+              productOrService: profile.productOrService || "",
+              cultureAndValues: profile.cultureAndValues || "",
               industry: (profile.industry as Industry) || "FinTech",
               stage: (profile.stage as Stage) || "MVP",
               website: profile.website || "",
-              linkedin: profile.linkedinUrl || "",
-              twitter: profile.twitterUrl || "",
-              github: "",
-              foundedYear: profile.foundedYear || "2023",
-              teamSize: parseInt(profile.teamSize || "5"),
-              city: profile.location?.split(",")[0] || "",
-              country: profile.location?.split(",")[1]?.trim() || "",
-              hiring: (profile.openPositions || 0) > 0,
+              linkedin: socialLinks.linkedin || "",
+              twitter: socialLinks.twitter || "",
+              github: socialLinks.github || "",
+              foundedYear: profile.foundedYear ? String(profile.foundedYear) : "2023",
+              teamSize: profile.teamSize ? String(profile.teamSize) : "1",
+              numberOfEmployees: profile.numberOfEmployees ? String(profile.numberOfEmployees) : "1",
+              city,
+              country,
+              hiring: profile.hiring || false,
+              leadershipTeam: profile.leadershipTeam?.length
+                ? profile.leadershipTeam.map((member) => ({
+                    user: member.user ? String(member.user) : "",
+                    role: member.role || "",
+                  }))
+                : [{ user: "", role: "" }],
             });
           }
         } catch (error) {
@@ -136,19 +190,36 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
     setIsSaving(true);
 
     try {
+      const toNumber = (value: string) => (value ? Number(value) : undefined);
+
       const updateData = {
         startupName: formData.startupName,
         tagline: formData.tagline,
-        description: formData.description,
+        aboutus: formData.aboutus,
+        productOrService: formData.productOrService,
+        cultureAndValues: formData.cultureAndValues,
         industry: formData.industry,
         stage: formData.stage,
         website: formData.website,
-        linkedinUrl: formData.linkedin,
-        twitterUrl: formData.twitter,
-        foundedYear: formData.foundedYear,
-        teamSize: formData.teamSize.toString(),
-        location: `${formData.city}, ${formData.country}`,
-        openPositions: formData.hiring ? 1 : 0,
+        socialLinks: {
+          linkedin: formData.linkedin,
+          twitter: formData.twitter,
+          github: formData.github,
+        },
+        foundedYear: toNumber(formData.foundedYear),
+        teamSize: toNumber(formData.teamSize),
+        numberOfEmployees: toNumber(formData.numberOfEmployees),
+        location: {
+          city: formData.city || undefined,
+          country: formData.country || undefined,
+        },
+        hiring: formData.hiring,
+        leadershipTeam: formData.leadershipTeam
+          .map((member) => ({
+            user: member.user.trim() || undefined,
+            role: member.role.trim() || undefined,
+          }))
+          .filter((member) => member.user || member.role),
       };
 
       let result;
@@ -219,13 +290,37 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
           </div>
 
           <div>
-            <Label>Description</Label>
+            <Label>About Us</Label>
             <Textarea
-              name="description"
-              value={formData.description}
+              name="aboutus"
+              value={formData.aboutus}
               onChange={handleChange}
               rows={3}
               placeholder="Tell us about your startup..."
+              className="mt-1.5"
+            />
+          </div>
+
+          <div>
+            <Label>Product or Service</Label>
+            <Textarea
+              name="productOrService"
+              value={formData.productOrService}
+              onChange={handleChange}
+              rows={3}
+              placeholder="What do you build or provide?"
+              className="mt-1.5"
+            />
+          </div>
+
+          <div>
+            <Label>Culture and Values</Label>
+            <Textarea
+              name="cultureAndValues"
+              value={formData.cultureAndValues}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Share your team culture and values"
               className="mt-1.5"
             />
           </div>
@@ -317,7 +412,7 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Founded Year</Label>
               <Input
@@ -338,6 +433,17 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
                 type="number"
                 name="teamSize"
                 value={formData.teamSize}
+                onChange={handleChange}
+                min={1}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Number of Employees</Label>
+              <Input
+                type="number"
+                name="numberOfEmployees"
+                value={formData.numberOfEmployees}
                 onChange={handleChange}
                 min={1}
                 className="mt-1.5"
@@ -373,6 +479,46 @@ export function EditStartupProfileModal({ open, onOpenChange }: EditStartupProfi
               onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, hiring: !!checked }))}
             />
             <Label htmlFor="hiring" className="cursor-pointer">Currently Hiring</Label>
+          </div>
+
+          <div>
+            <Label>Leadership Team</Label>
+            <div className="mt-2 space-y-4">
+              {formData.leadershipTeam.map((member, index) => (
+                <div key={`leader-${index}`} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                  <div className="md:col-span-3">
+                    <Input
+                      value={member.user}
+                      onChange={(e) => handleLeaderChange(index, "user", e.target.value)}
+                      placeholder="Leader User ID"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Input
+                      value={member.role}
+                      onChange={(e) => handleLeaderChange(index, "role", e.target.value)}
+                      placeholder="Role (e.g., CEO)"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div className="md:col-span-5 flex justify-end">
+                    {formData.leadershipTeam.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => removeLeader(index)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="secondary" onClick={addLeader}>
+                Add Leader
+              </Button>
+            </div>
           </div>
 
           <Button type="submit" variant="hero" className="w-full gap-2" disabled={isSaving}>

@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { jobService } from "@/services/jobService";
 import { getStoredUser } from "@/lib/api";
 
-const domains = ["AI/ML", "FinTech", "CleanTech", "SaaS", "Design", "Marketing"];
+const domains = ["AI/ML", "FinTech", "SaaS", "EdTech", "HealthTech", "E-Commerce", "Web3", "Other"];
 const jobTypes = ["Remote", "Hybrid", "Offline"];
 
 export default function JobListingsPage() {
@@ -47,16 +47,28 @@ export default function JobListingsPage() {
   }, []);
 
   const filteredJobs = jobs.filter((job) => {
+    const searchLower = searchQuery.toLowerCase();
+    
+    // Search Filter
     const matchesSearch =
-      job.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.startup?.startupName?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDomain = selectedDomains.length === 0 || selectedDomains.includes(job.startup?.industry);
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(job.jobType);
+      (job.role?.toLowerCase() || "").includes(searchLower) ||
+      (job.startup?.startupName?.toLowerCase() || "").includes(searchLower);
+
+    // Domain Filter (Case-insensitive check)
+    const jobIndustry = job.startup?.industry;
+    const matchesDomain = selectedDomains.length === 0 || 
+      (jobIndustry && selectedDomains.some(d => d.toLowerCase() === jobIndustry.toLowerCase()));
+
+    // Job Type Filter (Case-insensitive check)
+    const jobType = job.jobType;
+    const matchesType = selectedTypes.length === 0 || 
+      (jobType && selectedTypes.some(t => t.toLowerCase() === jobType.toLowerCase()));
+      
     return matchesSearch && matchesDomain && matchesType;
   });
 
-  const toggleFilter = (array: string[], value: string, setter: (arr: string[]) => void) => {
-    setter(array.includes(value) ? array.filter((i) => i !== value) : [...array, value]);
+  const toggleFilter = (array: string[], value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
+    setter(prev => prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]);
   };
 
   return (

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StudentLayout } from "@/components/layouts/StudentLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,104 +14,38 @@ import {
 import {
   Search,
   Calendar,
-  Building2,
   MapPin,
   FileText,
   Clock,
   CheckCircle2,
   XCircle,
   ChevronRight,
-  Eye,
 } from "lucide-react";
+import { apiFetch, getStoredUser } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ApplicationStatus = "applied" | "shortlisted" | "rejected" | "all";
 
 interface Application {
-  id: string;
-  jobTitle: string;
-  company: string;
-  companyLogo: string;
-  location: string;
-  appliedDate: string;
-  status: "applied" | "shortlisted" | "rejected";
-  timeline: {
-    date: string;
-    event: string;
-    description: string;
-  }[];
+  _id: string;
+  jobId: {
+    _id: string;
+    role: string;
+    jobType: string;
+    location?: string;
+    startupId: {
+      startupName: string;
+      profilepic: string;
+      location: { city: string; country: string };
+    };
+  };
+  studentId: string;
+  atsScore: number;
+  status: string; // "APPLIED", "SHORTLISTED", "REJECTED"
+  createdAt: string;
 }
 
-const mockApplications: Application[] = [
-  {
-    id: "1",
-    jobTitle: "Frontend Developer",
-    company: "TechVenture Labs",
-    companyLogo: "TV",
-    location: "Bangalore, India",
-    appliedDate: "Dec 28, 2025",
-    status: "shortlisted",
-    timeline: [
-      { date: "Dec 28, 2025", event: "Application Submitted", description: "Your application was successfully submitted" },
-      { date: "Dec 29, 2025", event: "Application Viewed", description: "Recruiter viewed your application" },
-      { date: "Dec 30, 2025", event: "Shortlisted", description: "You've been shortlisted for the next round!" },
-    ],
-  },
-  {
-    id: "2",
-    jobTitle: "Product Design Intern",
-    company: "DesignFirst",
-    companyLogo: "DF",
-    location: "Remote",
-    appliedDate: "Dec 25, 2025",
-    status: "applied",
-    timeline: [
-      { date: "Dec 25, 2025", event: "Application Submitted", description: "Your application was successfully submitted" },
-    ],
-  },
-  {
-    id: "3",
-    jobTitle: "Backend Engineer",
-    company: "CloudScale AI",
-    companyLogo: "CS",
-    location: "Mumbai, India",
-    appliedDate: "Dec 20, 2025",
-    status: "rejected",
-    timeline: [
-      { date: "Dec 20, 2025", event: "Application Submitted", description: "Your application was successfully submitted" },
-      { date: "Dec 22, 2025", event: "Application Viewed", description: "Recruiter viewed your application" },
-      { date: "Dec 24, 2025", event: "Not Selected", description: "Unfortunately, your profile wasn't selected for this role" },
-    ],
-  },
-  {
-    id: "4",
-    jobTitle: "Full Stack Developer",
-    company: "StartupHub",
-    companyLogo: "SH",
-    location: "Delhi, India",
-    appliedDate: "Dec 22, 2025",
-    status: "shortlisted",
-    timeline: [
-      { date: "Dec 22, 2025", event: "Application Submitted", description: "Your application was successfully submitted" },
-      { date: "Dec 23, 2025", event: "Application Viewed", description: "Recruiter viewed your application" },
-      { date: "Dec 26, 2025", event: "Shortlisted", description: "You've been shortlisted for a technical interview!" },
-    ],
-  },
-  {
-    id: "5",
-    jobTitle: "Data Analyst",
-    company: "DataDriven Co",
-    companyLogo: "DD",
-    location: "Hyderabad, India",
-    appliedDate: "Dec 18, 2025",
-    status: "applied",
-    timeline: [
-      { date: "Dec 18, 2025", event: "Application Submitted", description: "Your application was successfully submitted" },
-      { date: "Dec 20, 2025", event: "Application Viewed", description: "Recruiter viewed your application" },
-    ],
-  },
-];
-
-const statusConfig = {
+const statusConfig: any = {
   applied: {
     label: "Applied",
     color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -132,21 +66,52 @@ const statusConfig = {
 export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus>("all");
-  const [expandedApplication, setExpandedApplication] = useState<string | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredApplications = mockApplications.filter((app) => {
+  useEffect(() => {
+    const fetchApplications = async () => {
+      const user = getStoredUser();
+      if (!user?._id) return;
+      
+      try {
+        const res = await apiFetch(`/applications/student/${user._id}`);
+        if (res.success && Array.isArray(res.data)) {
+          console.log("Fetched applications:", res.data);
+          setApplications(res.data);
+        }
+      } catch (error) {
+        console.error("Failed to load applications", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+  }, []);
+
+  const filteredApplications = applications.filter((app) => {
+    const jobTitle = app?.jobId?.role || "Unknown Role";
+    const company = app?.jobId?.startupId?.startupName || "Unknown Company";
+    
+    // Normalize status from backend (UPPERCASE) to frontend (lowercase) for filtering
+    const appStatus = app.status ? app.status.toLowerCase() : "applied";
+
     const matchesSearch =
-      app.jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.company.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      company.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesStatus = statusFilter === "all" || appStatus === statusFilter;
+    
     return matchesSearch && matchesStatus;
   });
 
+  const getStatusKey = (status: string) => status ? status.toLowerCase() : "applied";
+
   const statusCounts = {
-    all: mockApplications.length,
-    applied: mockApplications.filter((a) => a.status === "applied").length,
-    shortlisted: mockApplications.filter((a) => a.status === "shortlisted").length,
-    rejected: mockApplications.filter((a) => a.status === "rejected").length,
+    all: applications.length,
+    applied: applications.filter((a) => a.status === "APPLIED").length,
+    shortlisted: applications.filter((a) => a.status === "SHORTLISTED").length,
+    rejected: applications.filter((a) => a.status === "REJECTED").length,
   };
 
   return (
@@ -233,144 +198,66 @@ export default function ApplicationsPage() {
         </Card>
 
         {/* Applications List */}
-        <div className="space-y-4">
-          {filteredApplications.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  No applications found
-                </h3>
-                <p className="text-muted-foreground">
-                  {searchQuery || statusFilter !== "all"
-                    ? "Try adjusting your filters"
-                    : "Start applying to jobs to see them here"}
-                </p>
-              </CardContent>
-            </Card>
+        <div className="grid gap-4">
+          {loading ? (
+             Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
+          ) : filteredApplications.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No applications found matching your criteria.
+            </div>
           ) : (
-            filteredApplications.map((application) => {
-              const config = statusConfig[application.status];
-              const isExpanded = expandedApplication === application.id;
-
+            filteredApplications.map((app) => {
+              const statusKey = getStatusKey(app.status);
+              const config = statusConfig[statusKey] || statusConfig['applied'];
+              
               return (
-                <Card
-                  key={application.id}
-                  className="overflow-hidden transition-all duration-200 hover:shadow-lg"
-                >
-                  <CardContent className="p-0">
-                    {/* Main Application Info */}
-                    <div className="p-4 lg:p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                        {/* Company Logo */}
-                        <div className="flex-shrink-0 h-14 w-14 rounded-xl bg-accent/10 flex items-center justify-center">
-                          <span className="text-lg font-bold text-accent">
-                            {application.companyLogo}
-                          </span>
-                        </div>
+              <Card key={app._id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row items-center gap-6">
+                    {/* Company Logo */}
+                    <div className="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center text-lg font-bold text-accent shrink-0">
+                      {app.jobId?.startupId?.profilepic ? (
+                          <img src={app.jobId.startupId.profilepic} alt="Logo" className="rounded-lg object-cover h-12 w-12" />
+                      ) : (
+                          app.jobId?.startupId?.startupName?.[0] || 'C'
+                      )}
+                    </div>
 
-                        {/* Job Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
-                            <h3 className="text-lg font-semibold text-foreground truncate">
-                              {application.jobTitle}
-                            </h3>
-                            <Badge className={config.color}>
-                              <config.icon className="h-3 w-3 mr-1" />
-                              {config.label}
-                            </Badge>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Building2 className="h-4 w-4" />
-                              {application.company}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {application.location}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              Applied {application.appliedDate}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Eye className="h-4 w-4" />
-                            View Job
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setExpandedApplication(isExpanded ? null : application.id)
-                            }
-                            className="gap-1"
-                          >
-                            Timeline
-                            <ChevronRight
-                              className={`h-4 w-4 transition-transform duration-200 ${
-                                isExpanded ? "rotate-90" : ""
-                              }`}
-                            />
-                          </Button>
+                    {/* Job Details */}
+                    <div className="flex-1 text-center lg:text-left space-y-1">
+                      <h3 className="font-semibold text-lg">{app.jobId?.role}</h3>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-muted-foreground">
+                        <span className="font-medium text-foreground">{app.jobId?.startupId?.startupName}</span>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span>{app.jobId?.startupId?.location?.city || "Remote"}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Timeline Section */}
-                    {isExpanded && (
-                      <div className="border-t border-border bg-muted/30 p-4 lg:p-6 animate-fade-in">
-                        <h4 className="text-sm font-medium text-foreground mb-4">
-                          Application Timeline
-                        </h4>
-                        <div className="relative pl-6">
-                          {/* Timeline Line */}
-                          <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border" />
-                          
-                          {/* Timeline Events */}
-                          <div className="space-y-4">
-                            {application.timeline.map((event, index) => (
-                              <div key={index} className="relative">
-                                {/* Timeline Dot */}
-                                <div
-                                  className={`absolute -left-6 top-1 h-3.5 w-3.5 rounded-full border-2 ${
-                                    index === application.timeline.length - 1
-                                      ? application.status === "shortlisted"
-                                        ? "bg-accent border-accent"
-                                        : application.status === "rejected"
-                                        ? "bg-destructive border-destructive"
-                                        : "bg-blue-400 border-blue-400"
-                                      : "bg-muted border-border"
-                                  }`}
-                                />
-                                
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-foreground">
-                                      {event.event}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {event.date}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-0.5">
-                                    {event.description}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                    {/* Status & Date */}
+                    <div className="flex flex-col items-center lg:items-end gap-2">
+                       <Badge variant="outline" className={`${config.color} border`}>
+                        <div className="flex items-center gap-1.5">
+                          {config.icon && <config.icon className="h-3 w-3" />}
+                          {config.label}
                         </div>
+                      </Badge>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Applied on {new Date(app.createdAt).toLocaleDateString()}</span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
+                    </div>
+
+                    {/* Action */}
+                    <Button variant="ghost" size="icon">
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )})
           )}
         </div>
       </div>
